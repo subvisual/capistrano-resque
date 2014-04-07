@@ -69,7 +69,12 @@ namespace :resque do
         within current_path do
           pids = capture(:ls, "-1 tmp/pids/resque_work*.pid")
           pids.each_line do |pid_file|
-            execute :kill, "-s #{fetch(:resque_kill_signal)} $(cat #{pid_file.chomp}) && rm #{pid_file.chomp}"
+            if test "[ kill -0 $(cat #{pid_file.chomp}) > /dev/null 2>&1 ]"
+              execute :kill, "-s #{fetch(:resque_kill_signal)} $(cat #{pid_file.chomp})"
+            else
+              info 'PID found, but no process running, cleaning up stale PID file'
+            end
+            execute :rm, pid_file.chomp
           end
         end
       end
